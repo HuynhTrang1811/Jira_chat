@@ -79,8 +79,9 @@ def telegram_webhook():
         user_text = data["message"].get("text", "")
 
         # Gọi hàm tìm Jira
+        print(user_text)
         result = run_jira_search(user_text)
-
+        
         if isinstance(result, dict) and "error" in result:
             reply = f"Lỗi: {result['error']}"
         else:
@@ -92,13 +93,14 @@ def telegram_webhook():
                 reply = f"Tìm thấy {count} issue:\n"
                 for issue in issues[:5]:  # giới hạn 5 kết quả
                     reply += f"- {issue['key']}: {issue['summary']}\n"
+                    print(reply)
 
         send_telegram_message(chat_id, reply)
 
     return Response("OK", status=200)
 
 def send_telegram_message(chat_id, text):
-    url = f"{API_URL}/sendMessage"
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     payload = {
         "chat_id": chat_id,
         "text": text,

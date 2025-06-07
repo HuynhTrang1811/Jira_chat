@@ -8,13 +8,14 @@ def run_jira_search(user_input: str):
     jql_components = get_jql_json(user_input)
     user_map = load_user_map_from_file()
     mapped_users = replace_user_names_in_jql(jql_components, user_map)
-
+    
     # Kiểm tra lỗi trả về từ replace_user_names_in_jql
     if isinstance(mapped_users, dict) and "error" in mapped_users:
         print(mapped_users)
         return mapped_users  # Trả về dict lỗi ngay
 
     final_jql = convert_dict_to_jql_with_ai(mapped_users)
+    print(final_jql)
     issues = search_jira_issues(final_jql)
 
     if issues:
