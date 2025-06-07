@@ -102,6 +102,7 @@ def telegram_webhook():
 
 def send_telegram_message(chat_id, text):
     url = f"{API_URL}/sendMessage"
+    print(text)
     payload = {
         "chat_id": chat_id,
         "text": text,
