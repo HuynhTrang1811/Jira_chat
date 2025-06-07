@@ -106,9 +106,9 @@ def send_telegram_message(chat_id, text):
         "text": text,
         "parse_mode": "Markdown"
     }
-    requests.post(url, json=payload)
-    print("Send message status:", requests.status_code, requests.text)
-
+    response = requests.post(url, json=payload)
+    print("Send message status:", response.status_code)
+    print("Send message response:", response.text)
 
 
 if __name__ == "__main__":
