@@ -107,6 +107,7 @@ def send_telegram_message(chat_id, text):
         "parse_mode": "Markdown"
     }
     requests.post(url, json=payload)
+    print("Send message status:", requests.status_code, requests.text)
 
 
 
