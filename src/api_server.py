@@ -1,9 +1,14 @@
 from flask import Flask, request, Response
 from chatbot import run_jira_search
+import os
 import json
-
+import requests
 app = Flask(__name__)
+# Thay bằng token bot của bạn
+BOT_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 
+# URL của API đã deploy trên Render
+API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 @app.route("/jira/issues/search", methods=["POST"])
 def search_jira_issues():
     data = request.get_json(silent=True)
@@ -65,6 +70,42 @@ def search_jira_issues():
             content_type='application/json; charset=utf-8',
             status=500
         )
+@app.route("/telegram/webhook", methods=["POST"])
+def telegram_webhook():
+    data = request.get_json()
+    if "message" in data:
+        chat_id = data["message"]["chat"]["id"]
+        user_text = data["message"].get("text", "")
+
+        # Gọi hàm tìm Jira
+        result = run_jira_search(user_text)
+
+        if isinstance(result, dict) and "error" in result:
+            reply = f"Lỗi: {result['error']}"
+        else:
+            count = result.get("count", 0)
+            issues = result.get("issues", [])
+            if count == 0:
+                reply = "Không tìm thấy kết quả nào."
+            else:
+                reply = f"Tìm thấy {count} issue:\n"
+                for issue in issues[:5]:  # giới hạn 5 kết quả
+                    reply += f"- {issue['key']}: {issue['summary']}\n"
+
+        send_telegram_message(chat_id, reply)
+
+    return Response("OK", status=200)
+
+def send_telegram_message(chat_id, text):
+    url = f"{API_URL}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "Markdown"
+    }
+    requests.post(url, json=payload)
+
+
 
 if __name__ == "__main__":
     app.run(debug=True, port=5001)
