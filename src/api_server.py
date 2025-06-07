@@ -76,6 +76,7 @@ def telegram_webhook():
     data = request.get_json()
     if "message" in data:
         chat_id = data["message"]["chat"]["id"]
+        print(chat_id)
         user_text = data["message"].get("text", "")
 
         # Gọi hàm tìm Jira
@@ -100,7 +101,7 @@ def telegram_webhook():
     return Response("OK", status=200)
 
 def send_telegram_message(chat_id, text):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    url = f"{API_URL}/sendMessage"
     payload = {
         "chat_id": chat_id,
         "text": text,
