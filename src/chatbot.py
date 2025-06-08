@@ -18,27 +18,37 @@ def run_jira_search(user_input: str):
     # else:
     #     return {"count": 0, "issues": []}
     jql_components = get_jql_json(user_input)
-    print("JQL Components:", jql_components)
+   
 
 # Nếu là dict, tức là có thể là truy vấn JQL
-    if isinstance(jql_components, dict) and jql_components:
-        issues = search_jira_issues(jql_components)
-    
-        if issues:
-            return {
-            "count": len(issues),
-            "issues": [
-                {"key": i["key"], "summary": i["fields"]["summary"]}
-                for i in issues
-            ]
-        }
+    if isinstance(jql_components, str):
+        # Giả sử nếu chuỗi không phải lời chào thì là câu truy vấn JQL
+        greetings = ["xin chào", "trợ lí jira", "hello", "hi"]
+
+        if any(greet in jql_components.lower() for greet in greetings):
+            # Nếu là lời chào, trả về ngay
+
+            return jql_components
         else:
-            return {
-            "count": 0,
-            "issues": []
-        }
+            # Giả sử đây là câu truy vấn JQL, gọi tìm issue
+            issues = search_jira_issues(jql_components)
+            
+            if issues:
+                return {
+                    "count": len(issues),
+                    "issues": [
+                        {"key": i["key"], "summary": i["fields"]["summary"]}
+                        for i in issues
+                    ]
+                }
+            else:
+                return {
+                    "count": 0,
+                    "issues": []
+                }
     else:
-        return jql_components
+        # Nếu jql_components không phải string, xử lý khác (nếu có)
+        return {"error": "Không hiểu định dạng JQL"}
 
 
 

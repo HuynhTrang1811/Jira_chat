@@ -78,14 +78,11 @@ def telegram_webhook():
         user_text = data["message"].get("text", "")
 
         # Gọi hàm tìm Jira
-        print(user_text)
+        print(chat_id)
         result = run_jira_search(user_text)
-
-# Nếu là dict và có khóa "error"
+        
         if isinstance(result, dict) and "error" in result:
             reply = f"Lỗi: {result['error']}"
-
-# Nếu là dict chứa danh sách issue
         elif isinstance(result, dict):
             count = result.get("count", 0)
             issues = result.get("issues", [])
@@ -97,13 +94,12 @@ def telegram_webhook():
                 for issue in issues[:5]:  # giới hạn 5 kết quả
                     reply += f"- {issue['key']}: {issue['summary']}\n"
 
-# Nếu không phải dict → là chuỗi trả lời AI như "Xin chào..."
         elif isinstance(result, str):
             reply = result
 
         else:
             reply = "Có lỗi xảy ra. Vui lòng thử lại."
-        send_telegram_message(chat_id,reply)
+    send_telegram_message(chat_id,reply)
 
     return Response("OK", status=200)
 
