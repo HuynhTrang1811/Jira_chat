@@ -27,7 +27,7 @@ def search_jira_issues():
 
     try:
         result = run_jira_search(user_query)
-        
+
 
         if isinstance(result, dict) and "error" in result:
             response = {
@@ -80,23 +80,33 @@ def telegram_webhook():
         # Gọi hàm tìm Jira
         print(user_text)
         result = run_jira_search(user_text)
-        
+
+# Nếu là dict và có khóa "error"
         if isinstance(result, dict) and "error" in result:
             reply = f"Lỗi: {result['error']}"
-        else:
+
+# Nếu là dict chứa danh sách issue
+        elif isinstance(result, dict):
             count = result.get("count", 0)
             issues = result.get("issues", [])
+    
             if count == 0:
                 reply = "Không tìm thấy kết quả nào."
             else:
                 reply = f"Tìm thấy {count} issue:\n"
                 for issue in issues[:5]:  # giới hạn 5 kết quả
                     reply += f"- {issue['key']}: {issue['summary']}\n"
-                    print(reply)
 
-        send_telegram_message(chat_id, reply)
+# Nếu không phải dict → là chuỗi trả lời AI như "Xin chào..."
+        elif isinstance(result, str):
+            reply = result
+
+        else:
+            reply = "Có lỗi xảy ra. Vui lòng thử lại."
+        send_telegram_message(chat_id,reply)
 
     return Response("OK", status=200)
+
 
 def send_telegram_message(chat_id, text):
     url = f"{API_URL}/sendMessage"

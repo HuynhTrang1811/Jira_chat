@@ -37,8 +37,6 @@ def run_jira_search(user_input: str):
             "count": 0,
             "issues": []
         }
-
-# Ngược lại: jql_components là chuỗi —> trả về chuỗi như “Xin chào...”
     else:
         return jql_components
 
