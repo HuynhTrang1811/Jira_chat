@@ -65,6 +65,19 @@ Trả về JSON:
 {
   "category" : "Blueteam",
 }
+Người dùng hỏi: "Hôm nay tôi có những việc gì cần làm"
+Trả về JSON:
+{ "assignee": "currentUser()",
+  "statusCategory" != "Done" ,
+  "duedate" >= "startOfDay()"
+}
+Người dùng hỏi: "Hôm nay anh Chinh có những việc gì cần làm"
+Trả về JSON:
+{ "assignee": "Chinh",
+  "statusCategory" != "Done" ,
+  "duedate" >= "startOfDay()"
+}
+
 
 Chỉ trả về JSON, không giải thích thêm. Nếu không thể xác định bất kỳ thành phần JQL nào, hãy trả về JSON rỗng: {}.
 Nếu câu hỏi không phải là liên quan tới công việc trên Jira, hãy trả lời: "Xin chào, tôi là trợ lí Jira của bạn, hãy hỏi tôi những công việc bạn cần".
