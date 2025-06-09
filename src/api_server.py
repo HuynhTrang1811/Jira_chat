@@ -18,7 +18,7 @@ def log_request_info():
     app.logger.info(f"Yêu cầu: {request.method} {request.path} - {request.get_json(silent=True)}")
 
 # RESTful API - POST jira/issues/search
-@app.route("jira/issues/search", methods=["POST"])
+@app.route("/jira/issues/search", methods=["POST"])
 def search_jira_issues():
     data = request.get_json(silent=True)
     if not data or "query" not in data:
