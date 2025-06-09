@@ -1,108 +1,121 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, Response
+import os
+print("Working directory:", os.getcwd())
+from chatbot import run_jira_search
 import os
 import json
 import requests
-from chatbot import run_jira_search  # Đảm bảo đã xử lý an toàn bên trong chatbot
-
 app = Flask(__name__)
-
-# Load Telegram bot token từ biến môi trường
 BOT_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-if not BOT_TOKEN:
-    raise EnvironmentError("TELEGRAM_TOKEN chưa được thiết lập trong biến môi trường")
 API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
-
-# Middleware cho logging (có thể mở rộng thêm rate-limiting, auth...)
-@app.before_request
-def log_request_info():
-    app.logger.info(f"Yêu cầu: {request.method} {request.path} - {request.get_json(silent=True)}")
-
-# RESTful API - POST jira/issues/search
 @app.route("/jira/issues/search", methods=["POST"])
 def search_jira_issues():
     data = request.get_json(silent=True)
     if not data or "query" not in data:
-        return jsonify({"error": {"message": "Thiếu trường 'query'."}}), 400
+        response = {
+            "error": {
+                "message": "Thiếu trường 'query'"
+            }
+        }
+        return Response(
+            json.dumps(response, ensure_ascii=False),
+            content_type='application/json; charset=utf-8',
+            status=400
+        )
 
     user_query = data["query"]
+
     try:
         result = run_jira_search(user_query)
 
+
         if isinstance(result, dict) and "error" in result:
-            return jsonify({
+            response = {
                 "error": {
                     "code": "INVALID_QUERY",
                     "message": result["error"],
                     "detail": result.get("message", ""),
                     "candidates": result.get("candidates", [])
                 }
-            }), 400
-
-        return jsonify({
-            "result": {
-                "count": len(result),
-                "issues": result
             }
-        }), 200
+            return Response(
+                json.dumps(response, ensure_ascii=False),
+                content_type='application/json; charset=utf-8',
+                status=400
+            )
+
+        # Cấu trúc result: list of issues
+        formatted_result = {
+            "count": len(result),
+            "issues": result or []
+        }
+
+        return Response(
+            json.dumps({"result": result or []}, ensure_ascii=False,  indent=2),
+            content_type='application/json; charset=utf-8',
+            status=200
+        )
 
     except Exception as e:
-        app.logger.error("Lỗi nội bộ: %s", str(e))
-        return jsonify({
+        response = {
             "error": {
                 "code": "INTERNAL_ERROR",
-                "message": "Lỗi máy chủ.",
+                "message": "Đã xảy ra lỗi trong quá trình xử lý.",
                 "detail": str(e)
             }
-        }), 500
-
-# Webhook API cho Telegram bot
-@app.route("/webhook/telegram", methods=["POST"])
+        }
+        return Response(
+            json.dumps(response, ensure_ascii=False),
+            content_type='application/json; charset=utf-8',
+            status=500
+        )
+@app.route("/telegram/webhook", methods=["POST"])
 def telegram_webhook():
-    data = request.get_json(force=True)
+    data = request.get_json()
+    if "message" in data:
+        chat_id = data["message"]["chat"]["id"]
+        print(chat_id)
+        user_text = data["message"].get("text", "")
 
-    if "message" not in data:
-        return jsonify({"error": "Thiếu trường 'message'."}), 400
-
-    chat_id = data["message"]["chat"]["id"]
-    user_text = data["message"].get("text", "")
-
-    try:
+        # Gọi hàm tìm Jira
+        print(chat_id)
         result = run_jira_search(user_text)
-
+        
         if isinstance(result, dict) and "error" in result:
-            reply = f"⚠️ Lỗi: {result['error']}"
-        elif isinstance(result, list):
-            if not result:
-                reply = "❌ Không tìm thấy issue nào."
+            reply = f"Lỗi: {result['error']}"
+        elif isinstance(result, dict):
+            count = result.get("count", 0)
+            issues = result.get("issues", [])
+    
+            if count == 0:
+                reply = "Không tìm thấy kết quả nào."
             else:
-                reply = f"📊 Tìm thấy {len(result)} issue:\n"
-                for issue in result[:5]:
+                reply = f"Tìm thấy {count} issue:\n"
+                for issue in issues[:5]:  # giới hạn 5 kết quả
                     reply += f"- {issue['key']}: {issue['summary']}\n"
+
+        elif isinstance(result, str):
+            reply = result
+
         else:
-            reply = str(result)
+            reply = "Có lỗi xảy ra. Vui lòng thử lại."
+    send_telegram_message(chat_id,reply)
 
-        send_telegram_message(chat_id, reply)
-        return "OK", 200
-
-    except Exception as e:
-        app.logger.error("Lỗi webhook Telegram: %s", str(e))
-        send_telegram_message(chat_id, "⚠️ Lỗi hệ thống. Vui lòng thử lại sau.")
-        return "Error", 500
+    return Response("OK", status=200)
 
 
 def send_telegram_message(chat_id, text):
     url = f"{API_URL}/sendMessage"
+    print(text)
     payload = {
         "chat_id": chat_id,
         "text": text,
         "parse_mode": "Markdown"
     }
-    try:
-        response = requests.post(url, json=payload, timeout=10)
-        response.raise_for_status()
-    except requests.RequestException as e:
-        app.logger.error("Gửi tin nhắn Telegram thất bại: %s", str(e))
+    response = requests.post(url, json=payload)
+    print("Send message status:", response.status_code)
+    print("Send message response:", response.text)
 
 
 if __name__ == "__main__":
-    app.run(debug=False, port=5001, host="0.0.0.0")
+    app.run(debug=True, port=5001)
