@@ -3,5 +3,4 @@ __pycache__/
 venv/
 .env
 src/users.txt
-src/users_parsed.txt
 src/users_with_firstname.txt
